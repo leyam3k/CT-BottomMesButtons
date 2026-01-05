@@ -1,63 +1,117 @@
-// The main script for the extension
-// The following are examples of some basic extension functionality
+// CT-BottomMesButtons - Moves message buttons to the bottom of messages
+(function () {
+  const MODULE_NAME = "CT-BottomMesButtons";
 
-//You'll likely need to import extension_settings, getContext, and loadExtensionSettings from extensions.js
-import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
+  /**
+   * Moves the buttons in a message element to the bottom
+   * @param {HTMLElement} mesElement - The .mes element to process
+   */
+  function moveButtonsToBottom(mesElement) {
+    const mesBlock = mesElement.querySelector(".mes_block");
+    if (!mesBlock) return;
 
-//You'll likely need to import some other functions from the main script
-import { saveSettingsDebounced } from "../../../../script.js";
+    const mesButtons = mesBlock.querySelector(".ch_name > .mes_buttons");
+    const mesEditButtons = mesBlock.querySelector(
+      ".ch_name > .mes_edit_buttons"
+    );
+    const mesBias = mesBlock.querySelector(".mes_bias");
 
-// Keep track of where your extension is located, name should match repo name
-const extensionName = "st-extension-example";
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
-const extensionSettings = extension_settings[extensionName];
-const defaultSettings = {};
+    if (!mesBias) return;
 
+    // Move .mes_buttons after .mes_bias
+    if (mesButtons && !mesBlock.querySelector(".mes_bias + .mes_buttons")) {
+      mesBias.after(mesButtons);
+    }
 
- 
-// Loads the extension settings if they exist, otherwise initializes them to the defaults.
-async function loadSettings() {
-  //Create the settings if they don't exist
-  extension_settings[extensionName] = extension_settings[extensionName] || {};
-  if (Object.keys(extension_settings[extensionName]).length === 0) {
-    Object.assign(extension_settings[extensionName], defaultSettings);
+    // Move .mes_edit_buttons after .mes_buttons
+    if (mesEditButtons) {
+      const movedMesButtons = mesBlock.querySelector(
+        ".mes_bias + .mes_buttons"
+      );
+      if (
+        movedMesButtons &&
+        !mesBlock.querySelector(".mes_buttons + .mes_edit_buttons")
+      ) {
+        movedMesButtons.after(mesEditButtons);
+      }
+    }
+
+    // Move .mes_edit button inside .extraMesButtons (after .mes_copy)
+    const extraMesButtons = mesElement.querySelector(".extraMesButtons");
+    const mesEditOutside = mesElement.querySelector(".mes_buttons > .mes_edit");
+    const mesCopy = extraMesButtons?.querySelector(".mes_copy");
+
+    if (extraMesButtons && mesEditOutside && mesCopy) {
+      // Check if mes_edit is not already inside extraMesButtons
+      if (!extraMesButtons.querySelector(".mes_edit")) {
+        mesCopy.after(mesEditOutside);
+      }
+    }
   }
 
-  // Updating settings in the UI
-  $("#example_setting").prop("checked", extension_settings[extensionName].example_setting).trigger("input");
-}
+  /**
+   * Process all existing messages
+   */
+  function processAllMessages() {
+    document.querySelectorAll("#chat .mes").forEach(moveButtonsToBottom);
+  }
 
-// This function is called when the extension settings are changed in the UI
-function onExampleInput(event) {
-  const value = Boolean($(event.target).prop("checked"));
-  extension_settings[extensionName].example_setting = value;
-  saveSettingsDebounced();
-}
+  /**
+   * Initialize the extension
+   */
+  function init() {
+    console.log(`[${MODULE_NAME}] Initializing...`);
 
-// This function is called when the button is clicked
-function onButtonClick() {
-  // You can do whatever you want here
-  // Let's make a popup appear with the checked setting
-  toastr.info(
-    `The checkbox is ${extension_settings[extensionName].example_setting ? "checked" : "not checked"}`,
-    "A popup appeared because you clicked the button!"
-  );
-}
+    // Process existing messages
+    processAllMessages();
 
-// This function is called when the extension is loaded
-jQuery(async () => {
-  // This is an example of loading HTML from a file
-  const settingsHtml = await $.get(`${extensionFolderPath}/example.html`);
+    // Observe for new messages being added
+    const chat = document.getElementById("chat");
+    if (chat) {
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (node.classList?.contains("mes")) {
+                moveButtonsToBottom(node);
+              }
+              // Also check children in case a container was added
+              node.querySelectorAll?.(".mes").forEach(moveButtonsToBottom);
+            }
+          }
+        }
+      });
 
-  // Append settingsHtml to extensions_settings
-  // extension_settings and extensions_settings2 are the left and right columns of the settings menu
-  // Left should be extensions that deal with system functions and right should be visual/UI related 
-  $("#extensions_settings").append(settingsHtml);
+      observer.observe(chat, { childList: true, subtree: true });
+    }
 
-  // These are examples of listening for events
-  $("#my_button").on("click", onButtonClick);
-  $("#example_setting").on("input", onExampleInput);
+    // Listen for chat changes using SillyTavern's event system
+    const context = SillyTavern.getContext();
+    if (context?.eventSource && context?.event_types) {
+      context.eventSource.on(context.event_types.CHAT_CHANGED, () => {
+        // Small delay to ensure DOM is updated
+        setTimeout(processAllMessages, 100);
+      });
 
-  // Load settings when starting things up (if you have any)
-  loadSettings();
-});
+      context.eventSource.on(
+        context.event_types.CHARACTER_MESSAGE_RENDERED,
+        () => {
+          setTimeout(processAllMessages, 50);
+        }
+      );
+
+      context.eventSource.on(context.event_types.USER_MESSAGE_RENDERED, () => {
+        setTimeout(processAllMessages, 50);
+      });
+    }
+
+    console.log(`[${MODULE_NAME}] Initialized successfully`);
+  }
+
+  // Wait for jQuery and DOM to be ready
+  if (typeof jQuery !== "undefined") {
+    jQuery(init);
+  } else {
+    document.addEventListener("DOMContentLoaded", init);
+  }
+})();

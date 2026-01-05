@@ -1,33 +1,36 @@
-# SillyTavern Extension Example
+# CT-BottomMesButtons
 
-*Provide a brief description of how your extension works, what problem it aims to solve.*
+A SillyTavern extension that moves message action buttons (edit, copy, etc.) to the bottom of each message for improved UX.
 
 ## Features
 
-*Describe some of the main selling points of your extension.*
+- Moves the message buttons (`.mes_buttons`) to the bottom of each message, below the message content
+- Moves the edit button inside the extra buttons dropdown for cleaner layout
+- Automatically processes new messages as they are added to the chat
+- Works with existing messages when switching chats
 
-## Installation and Usage
+## Installation
 
-### Installation
+### Using SillyTavern's Extension Installer
 
-*In most cases, this should just be using ST's inbuilt extension installer.* 
+1. Open SillyTavern
+2. Go to Extensions > Install Extension
+3. Enter the repository URL: `https://github.com/leyam3k/CT-BottomMesButtons`
+4. Click Install
 
-### Usage
+### Manual Installation
 
-*Explain how to use this extension.*
+1. Clone this repository into your SillyTavern's `public/scripts/extensions/third-party/` folder
+2. Restart SillyTavern
+
+## Usage
+
+The extension works automatically once installed. No configuration needed.
 
 ## Prerequisites
 
-*Specify the version of ST necessary here.*
-
-## Support and Contributions
-
-*Where should someone ask for support?*
-
-*Consider including your own contact info for help/questions.*
-
-*How can people help add to this extension?*
+- SillyTavern 1.0.0 or higher
 
 ## License
 
-*Be cool, use an open source license.*
+AGPL-3.0
